@@ -163,6 +163,41 @@ tests/             # çekirdek + GUI testleri
 
 ---
 
+## ⚠️ "Windows bilgisayarınızı korudu" uyarısı (SmartScreen)
+
+Uygulamayı indirip ilk kez açtığında Windows **"Bilinmeyen yayımcı /
+Windows protected your PC"** uyarısı gösterebilir. Açmak için:
+**Ek bilgi (More info) → Yine de çalıştır (Run anyway)**.
+
+**Bu bir virüs uyarısı değildir.** Bu uyarı, ücretli bir *kod imzalama
+sertifikası* ile imzalanmamış ve henüz yeterince indirilmemiş **her** yeni
+uygulamada çıkar — Windows yalnızca "bu yayımcıyı henüz tanımıyorum" diyor.
+
+Neden güvenebilirsin:
+- **Kaynak kodun tamamı açık** — inceleyebilir veya `build.bat` ile kendin
+  derleyip aynı exe'yi üretebilirsin.
+- Program yalnızca **senin seçtiğin klasörlere** dosya yazar; kurulum yapmaz,
+  arka planda çalışmaz, internete veri göndermez.
+
+### Uyarıyı tamamen kaldırmak
+Kalıcı çözüm exe'yi bir **kod imzalama sertifikasıyla imzalamaktır**:
+- **EV (Extended Validation) sertifikası** — SmartScreen'de *anında* güven,
+  uyarı hiç çıkmaz. Ancak pahalıdır (yılda ~birkaç yüz $) ve kimlik/şirket
+  doğrulaması + donanım anahtarı gerekir.
+- **Azure Trusted Signing** — Microsoft'un ucuz (~aylık $10) imzalama servisi;
+  Microsoft köküne zincirlendiği için güven daha hızlı oluşur.
+- **SignPath (OSS planı)** — açık kaynak projelere ücretsiz kod imzalama.
+- **Zamanla ücretsiz** — imzasız olsa bile, uygulama yeterince indirilip
+  çalıştırıldıkça SmartScreen "itibar" kazanır ve uyarı kendiliğinden kaybolur.
+
+### Antivirüs "virüs" derse
+PyInstaller ile üretilen tek-dosya exe'ler bazen sezgisel taramalarda **yanlış
+alarm** (false positive) verir çünkü kendini geçici klasöre açar. Bunu azaltmak
+için exe'yi [VirusTotal](https://www.virustotal.com)'a yükleyip temiz sonucu
+paylaşabilir, gerekirse Microsoft'a *false positive* olarak bildirebilirsin.
+
+---
+
 ## 📜 Lisans
 
 [MIT](LICENSE) — dilediğin gibi kullan, değiştir, dağıt.
