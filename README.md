@@ -106,6 +106,7 @@ Ardından `build.bat` dosyasını çalıştır **veya** şu komutu ver:
 ```bash
 pyinstaller --noconfirm --clean --onefile --windowed ^
   --name "TF2 Swiss Army Knife" --icon "assets\icon.ico" ^
+  --add-data "assets\icon.ico;assets" ^
   --collect-all customtkinter --collect-all soundfile --collect-all sounddevice ^
   --exclude-module scipy main.py
 ```

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import threading
 from tkinter import filedialog
 
@@ -15,6 +16,16 @@ from .sound_tab import SoundTab
 from .spray_tab import SprayTab
 from .widgets import drain_ui_queue, ui_call
 
+_APP_ID = "Scainest.TF2SwissArmyKnife"
+
+
+def _resource_path(*parts: str) -> str:
+    """Path to a bundled resource, working both from source and from the
+    PyInstaller onefile bundle (which extracts data under sys._MEIPASS)."""
+    base = getattr(sys, "_MEIPASS",
+                   os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(base, *parts)
+
 
 class App(ctk.CTk):
     def __init__(self):
@@ -23,6 +34,7 @@ class App(ctk.CTk):
         self.geometry("960x760")
         self.minsize(900, 700)
         ctk.set_appearance_mode("dark")
+        self._apply_window_icon()
 
         self.config_mgr = ConfigManager()
 
@@ -60,6 +72,27 @@ class App(ctk.CTk):
 
         self.after(100, self._detect_tf2)
         self.after(30, self._poll_ui_queue)
+        # CustomTkinter re-applies its own icon shortly after construction,
+        # so set ours again once things settle.
+        self.after(400, self._apply_window_icon)
+
+    def _apply_window_icon(self):
+        """Show the app icon in the title bar and taskbar, in dev and exe."""
+        # Make Windows treat us as our own app (uses the window icon in the
+        # taskbar instead of grouping under python.exe).
+        if sys.platform == "win32":
+            try:
+                import ctypes
+                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                    _APP_ID)
+            except Exception:
+                pass
+        ico = _resource_path("assets", "icon.ico")
+        if os.path.isfile(ico):
+            try:
+                self.iconbitmap(ico)
+            except Exception:
+                pass
 
     def _poll_ui_queue(self):
         """Runs callables queued by worker threads (thread-safe UI updates)."""

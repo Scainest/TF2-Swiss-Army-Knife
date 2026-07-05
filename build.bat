@@ -9,6 +9,7 @@ if errorlevel 1 goto :error
 echo [2/2] EXE derleniyor...
 pyinstaller --noconfirm --clean --onefile --windowed ^
   --name "TF2 Swiss Army Knife" --icon "assets\icon.ico" ^
+  --add-data "assets\icon.ico;assets" ^
   --collect-all customtkinter --collect-all soundfile --collect-all sounddevice ^
   --exclude-module scipy main.py
 if errorlevel 1 goto :error
