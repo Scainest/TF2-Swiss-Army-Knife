@@ -207,10 +207,13 @@ Get-FileHash "TF2 Swiss Army Knife.exe" -Algorithm SHA256
 
 Çıkan değer yukarıdaki SHA-256 ile aynıysa dosya birebir orijinaldir.
 
-> **Not:** PyInstaller ile üretilen tek-dosya exe'ler bazen 1-2 motorda **yanlış
-> alarm** (false positive) verebilir — kendilerini geçici klasöre açtıkları için.
-> Ana motorların (Microsoft Defender, Kaspersky, BitDefender vb.) temiz demesi
-> yeterlidir; gerekirse Microsoft'a *false positive* olarak bildirebilirsin.
+> **Sonuç (v1.1.0): ~4/68 motor işaretliyor — hepsi PyInstaller yanlış alarmı.**
+> İşaretleyenler Bkav, SecureAge, Gridinsoft, Yandex gibi küçük/sezgisel
+> motorlar ve tehdit etiketi zaten `pyinstaller` / `Riskware.PyInstaller`
+> diyor (gerçek bir zararlı değil). **Microsoft Defender, Kaspersky, BitDefender,
+> ESET, Avast, AVG, Fortinet, Google, CrowdStrike, Malwarebytes dâhil tüm büyük
+> motorlar TEMİZ.** İmzasız PyInstaller uygulamaları için bu normaldir ve
+> zararsızdır. Endişen varsa kaynaktan kendin de derleyebilirsin (`build.bat`).
 
 ---
 
