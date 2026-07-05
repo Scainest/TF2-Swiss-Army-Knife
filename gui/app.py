@@ -10,6 +10,7 @@ from tkinter import filedialog
 import customtkinter as ctk
 
 from config import ConfigManager
+from resources import resource_path
 from tf2_locator import find_tf2_path, suggested_paths
 from .objector_tab import ObjectorTab
 from .sound_tab import SoundTab
@@ -17,14 +18,6 @@ from .spray_tab import SprayTab
 from .widgets import drain_ui_queue, ui_call
 
 _APP_ID = "Scainest.TF2SwissArmyKnife"
-
-
-def _resource_path(*parts: str) -> str:
-    """Path to a bundled resource, working both from source and from the
-    PyInstaller onefile bundle (which extracts data under sys._MEIPASS)."""
-    base = getattr(sys, "_MEIPASS",
-                   os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    return os.path.join(base, *parts)
 
 
 class App(ctk.CTk):
@@ -87,7 +80,7 @@ class App(ctk.CTk):
                     _APP_ID)
             except Exception:
                 pass
-        ico = _resource_path("assets", "icon.ico")
+        ico = resource_path("assets", "icon.ico")
         if os.path.isfile(ico):
             try:
                 self.iconbitmap(ico)

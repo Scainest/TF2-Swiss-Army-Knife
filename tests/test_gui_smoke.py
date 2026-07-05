@@ -48,6 +48,20 @@ def main():
 
     # --- Tab 1: spray ---
     t = app.spray_tab
+    # bundled example image loads + generates a valid spray end-to-end
+    t._load_example()
+    assert t._frames, "örnek görsel yüklenemedi"
+    assert "bulbasaur" in t._image_path.lower(), t._image_path
+    print("Örnek görsel:", os.path.basename(t._image_path), t._frames[0].size)
+    t._path_sel.set(os.path.join(tmp, "spray_example"))
+    t._generate()
+    for _ in range(200):
+        pump(app, 0.05)
+        if "✅" in t._status.cget("text") or "❌" in t._status.cget("text"):
+            break
+    assert "✅" in t._status.cget("text"), t._status.cget("text")
+    assert os.path.isfile(os.path.join(tmp, "spray_example", "bulbasaur.vtf"))
+
     t._image_path = photo
     t._name_entry.delete(0, "end")
     t._name_entry.insert(0, "smoke_test")

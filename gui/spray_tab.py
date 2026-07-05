@@ -10,11 +10,13 @@ import customtkinter as ctk
 from PIL import Image
 
 from core import preview, spray
+from resources import resource_path
 from .widgets import PathSelector, ui_call
 
 PREVIEW_SIZE = 260
 VIEW_ORIGINAL = "Orijinal"
 VIEW_GAME = "Oyun İçi (VTF)"
+SAMPLE_IMAGE = ("assets", "samples", "bulbasaur.png")
 
 
 class SprayTab(ctk.CTkFrame):
@@ -50,6 +52,9 @@ class SprayTab(ctk.CTkFrame):
         bar.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 4))
         ctk.CTkButton(bar, text="📂 Görsel Seç", command=self._pick_file
                       ).pack(side="left")
+        ctk.CTkButton(bar, text="🧪 Örnek", width=80, fg_color="#3a3f47",
+                      hover_color="#4a505a", command=self._load_example
+                      ).pack(side="left", padx=(8, 0))
         self._view_seg = ctk.CTkSegmentedButton(
             left, values=[VIEW_ORIGINAL, VIEW_GAME],
             command=self._on_view_change)
@@ -113,8 +118,18 @@ class SprayTab(ctk.CTkFrame):
             title="Görsel seç",
             filetypes=[("Görseller", "*.png *.jpg *.jpeg *.gif"),
                        ("Tümü", "*.*")])
-        if not path:
+        if path:
+            self._load_image(path)
+
+    def _load_example(self):
+        """Load the bundled sample image so the tool can be tried instantly."""
+        path = resource_path(*SAMPLE_IMAGE)
+        if not os.path.isfile(path):
+            self._set_status("❌ Örnek görsel bulunamadı.", error=True)
             return
+        self._load_image(path)
+
+    def _load_image(self, path):
         try:
             frames = spray.load_frames(path)
         except Exception as exc:

@@ -68,7 +68,13 @@ Seç** ile `...\Team Fortress 2\tf` klasörünü gösterebilirsin. Her sekmenin 
 
 ### 🎨 Sprey Oluşturucu
 
+<p align="center">
+  <img src="assets/spray-preview.png" width="720" alt="Sprey Oluşturucu — oyun içi önizleme" />
+</p>
+
 1. **Görsel Seç** (`.png / .jpg / .gif`) — GIF'ler animasyonlu desteklenir.
+   İlk defa deniyorsan **🧪 Örnek** butonuyla gömülü örnek görseli tek tıkla
+   yükleyebilirsin.
 2. Sprey adını ve maks. çözünürlüğü (512/256/128) belirle.
 3. **Oyun İçi (VTF)** sekmesine geçerek spreyin oyunda gerçekte nasıl görüneceğini
    (DXT sıkıştırma dahil) gör.
@@ -119,6 +125,7 @@ Ardından `build.bat` dosyasını çalıştır **veya** şu komutu ver:
 pyinstaller --noconfirm --clean --onefile --windowed ^
   --name "TF2 Swiss Army Knife" --icon "assets\icon.ico" ^
   --add-data "assets\icon.ico;assets" ^
+  --add-data "assets\samples;assets\samples" ^
   --collect-all customtkinter --collect-all soundfile --collect-all sounddevice ^
   --exclude-module scipy main.py
 ```
