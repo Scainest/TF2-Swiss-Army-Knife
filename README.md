@@ -190,11 +190,27 @@ Kalıcı çözüm exe'yi bir **kod imzalama sertifikasıyla imzalamaktır**:
 - **Zamanla ücretsiz** — imzasız olsa bile, uygulama yeterince indirilip
   çalıştırıldıkça SmartScreen "itibar" kazanır ve uyarı kendiliğinden kaybolur.
 
-### Antivirüs "virüs" derse
-PyInstaller ile üretilen tek-dosya exe'ler bazen sezgisel taramalarda **yanlış
-alarm** (false positive) verir çünkü kendini geçici klasöre açar. Bunu azaltmak
-için exe'yi [VirusTotal](https://www.virustotal.com)'a yükleyip temiz sonucu
-paylaşabilir, gerekirse Microsoft'a *false positive* olarak bildirebilirsin.
+### VirusTotal taraması & dosya doğrulama
+Bu sürümün (**v1.1.0**) exe'sini 70+ antivirüs motoruyla kontrol edebilirsin:
+
+- **VirusTotal raporu:**
+  https://www.virustotal.com/gui/file/c7fda15fdfb08cd1472c8a4625ca26beb505f47db6f7d556cafb31a7a2fef686
+- **SHA-256:**
+  `c7fda15fdfb08cd1472c8a4625ca26beb505f47db6f7d556cafb31a7a2fef686`
+
+İndirdiğin dosyanın gerçekten bu sürüm olduğunu (kimse değiştirmemiş) doğrulamak
+için PowerShell'de:
+
+```powershell
+Get-FileHash "TF2 Swiss Army Knife.exe" -Algorithm SHA256
+```
+
+Çıkan değer yukarıdaki SHA-256 ile aynıysa dosya birebir orijinaldir.
+
+> **Not:** PyInstaller ile üretilen tek-dosya exe'ler bazen 1-2 motorda **yanlış
+> alarm** (false positive) verebilir — kendilerini geçici klasöre açtıkları için.
+> Ana motorların (Microsoft Defender, Kaspersky, BitDefender vb.) temiz demesi
+> yeterlidir; gerekirse Microsoft'a *false positive* olarak bildirebilirsin.
 
 ---
 
