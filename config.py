@@ -32,6 +32,7 @@ DEFAULTS = {
     "objector_export_path": "", # module 2
     "sound_export_path": "",    # module 3
     "last_browse_dir": "",
+    "language": "",             # UI language code (empty = auto-detect)
 }
 
 

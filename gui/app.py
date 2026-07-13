@@ -1,8 +1,9 @@
-"""Main window: TF2 detection banner + three module tabs."""
+"""Main window: TF2 detection banner + three module tabs + language picker."""
 
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 import threading
 from tkinter import filedialog
@@ -10,6 +11,8 @@ from tkinter import filedialog
 import customtkinter as ctk
 
 from config import ConfigManager
+from i18n import (available_languages, detect_default, get_language,
+                  set_language, t)
 from resources import resource_path
 from tf2_locator import find_tf2_path, suggested_paths
 from .objector_tab import ObjectorTab
@@ -17,41 +20,53 @@ from .sound_tab import SoundTab
 from .spray_tab import SprayTab
 from .widgets import drain_ui_queue, ui_call
 
-_APP_ID = "Scainest.TF2SwissArmyKnife"
+BRAND = "Teufort Toolkit"
+_APP_ID = "Scainest.TeufortToolkit"
 
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("TF2 Swiss Army Knife")
-        self.geometry("960x760")
-        self.minsize(900, 700)
+        self.config_mgr = ConfigManager()
+        set_language(self.config_mgr.get("language") or detect_default())
+
+        self.title(BRAND)
+        self.geometry("980x770")
+        self.minsize(920, 710)
         ctk.set_appearance_mode("dark")
         self._apply_window_icon()
 
-        self.config_mgr = ConfigManager()
-
-        # --- top bar: TF2 folder status ---
+        # --- top bar: brand + TF2 folder status + language ---
         top = ctk.CTkFrame(self, corner_radius=0)
         top.pack(fill="x")
-        ctk.CTkLabel(top, text="🔧 TF2 Swiss Army Knife",
+        ctk.CTkLabel(top, text=f"🔧 {BRAND}",
                      font=ctk.CTkFont(size=17, weight="bold")
                      ).pack(side="left", padx=16, pady=10)
-        ctk.CTkButton(top, text="📁 El ile Seç", width=100,
+
+        self._lang_by_native = {n: c for c, n in available_languages()}
+        native_by_code = {c: n for c, n in available_languages()}
+        self._lang_menu = ctk.CTkOptionMenu(
+            top, width=120, values=list(self._lang_by_native.keys()),
+            command=self._on_language_change)
+        self._lang_menu.set(native_by_code.get(get_language(), "English"))
+        self._lang_menu.pack(side="right", padx=(4, 16))
+        ctk.CTkLabel(top, text="🌐").pack(side="right")
+
+        ctk.CTkButton(top, text="📁 " + t("app.manual"), width=110,
                       fg_color="#3a3f47", hover_color="#4a505a",
-                      command=self._pick_tf2).pack(side="right", padx=(4, 16))
-        ctk.CTkButton(top, text="🔍 Yeniden Tara", width=110,
+                      command=self._pick_tf2).pack(side="right", padx=(4, 12))
+        ctk.CTkButton(top, text="🔍 " + t("app.rescan"), width=120,
                       command=self._detect_tf2).pack(side="right", padx=4)
-        self._tf2_label = ctk.CTkLabel(top, text="TF2 aranıyor...",
+        self._tf2_label = ctk.CTkLabel(top, text=t("app.searching"),
                                        text_color="#9aa4b0")
         self._tf2_label.pack(side="right", padx=12)
 
         # --- tabs ---
         self._tabs = ctk.CTkTabview(self, anchor="nw")
         self._tabs.pack(fill="both", expand=True, padx=10, pady=(0, 10))
-        tab1 = self._tabs.add("  🎨 Sprey Oluşturucu  ")
-        tab2 = self._tabs.add("  🖼️ Objector Maker  ")
-        tab3 = self._tabs.add("  🔊 Hitsound Kesici  ")
+        tab1 = self._tabs.add("  🎨 " + t("tab.spray") + "  ")
+        tab2 = self._tabs.add("  🖼️ " + t("tab.objector") + "  ")
+        tab3 = self._tabs.add("  🔊 " + t("tab.sound") + "  ")
         for tab in (tab1, tab2, tab3):
             tab.grid_columnconfigure(0, weight=1)
             tab.grid_rowconfigure(0, weight=1)
@@ -65,14 +80,12 @@ class App(ctk.CTk):
 
         self.after(100, self._detect_tf2)
         self.after(30, self._poll_ui_queue)
-        # CustomTkinter re-applies its own icon shortly after construction,
-        # so set ours again once things settle.
         self.after(400, self._apply_window_icon)
+
+    # ------------------------------------------------------------------
 
     def _apply_window_icon(self):
         """Show the app icon in the title bar and taskbar, in dev and exe."""
-        # Make Windows treat us as our own app (uses the window icon in the
-        # taskbar instead of grouping under python.exe).
         if sys.platform == "win32":
             try:
                 import ctypes
@@ -92,10 +105,30 @@ class App(ctk.CTk):
         drain_ui_queue()
         self.after(30, self._poll_ui_queue)
 
-    # ------------------------------------------------------------------
+    # -- language -------------------------------------------------------
+
+    def _on_language_change(self, native_name: str):
+        code = self._lang_by_native.get(native_name)
+        if not code or code == get_language():
+            return
+        self.config_mgr.set("language", code)
+        self._relaunch()
+
+    def _relaunch(self):
+        """Restart the app so every widget is rebuilt in the new language."""
+        try:
+            if getattr(sys, "frozen", False):
+                subprocess.Popen([sys.executable])
+            else:
+                subprocess.Popen([sys.executable, resource_path("main.py")])
+        except Exception:
+            pass
+        self.destroy()
+
+    # -- TF2 detection --------------------------------------------------
 
     def _detect_tf2(self):
-        self._tf2_label.configure(text="TF2 aranıyor...",
+        self._tf2_label.configure(text=t("app.searching"),
                                   text_color="#9aa4b0")
 
         def work():
@@ -107,8 +140,7 @@ class App(ctk.CTk):
         threading.Thread(target=work, daemon=True).start()
 
     def _pick_tf2(self):
-        chosen = filedialog.askdirectory(
-            title="Team Fortress 2\\tf klasörünü seç")
+        chosen = filedialog.askdirectory(title=t("app.pick_tf2_dialog"))
         if chosen:
             self._apply_tf2(chosen.replace("/", "\\"))
 
@@ -117,7 +149,6 @@ class App(ctk.CTk):
             self.config_mgr.set("tf2_path", path)
             self._tf2_label.configure(text=f"✅ {path}",
                                       text_color="#7fca6a")
-            # Prefill only module paths the user hasn't set yet.
             for key, value in suggested_paths(path).items():
                 if not self.config_mgr.get(key):
                     self.config_mgr.set(key, value)
@@ -129,8 +160,7 @@ class App(ctk.CTk):
                 self.config_mgr.get("sound_export_path"), persist=False)
         else:
             self._tf2_label.configure(
-                text="⚠️ TF2 bulunamadı — dizinleri el ile seçin",
-                text_color="#e0a95b")
+                text="⚠️ " + t("app.tf2_not_found"), text_color="#e0a95b")
 
 
 def run():

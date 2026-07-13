@@ -10,12 +10,11 @@ import customtkinter as ctk
 from PIL import Image
 
 from core import preview, spray
+from i18n import t
 from resources import resource_path
 from .widgets import PathSelector, ui_call
 
 PREVIEW_SIZE = 260
-VIEW_ORIGINAL = "Orijinal"
-VIEW_GAME = "Oyun İçi (VTF)"
 SAMPLE_IMAGE = ("assets", "samples", "bulbasaur.png")
 
 
@@ -30,16 +29,18 @@ class SprayTab(ctk.CTkFrame):
         self._anim_frames = []
         self._anim_index = 0
         self._anim_job = None
+        # Resolved once here (after the language is set) — used as the
+        # segmented-button values and for comparisons.
+        self._view_original = t("spray.view_original")
+        self._view_game = t("spray.view_game")
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
-        header = ctk.CTkLabel(
-            self, text="Görselleri (.png/.jpg/.gif) TF2 sprey formatına "
-                       "(.vtf + .vmt) dönüştürür. Çıktı 512 KB sınırına göre "
-                       "otomatik optimize edilir.",
-            anchor="w", text_color="#9aa4b0")
+        header = ctk.CTkLabel(self, text=t("spray.header"), anchor="w",
+                              text_color="#9aa4b0", wraplength=880,
+                              justify="left")
         header.grid(row=0, column=0, columnspan=2, sticky="ew",
                     padx=16, pady=(12, 4))
 
@@ -50,17 +51,17 @@ class SprayTab(ctk.CTkFrame):
         left.grid_columnconfigure(0, weight=1)
         bar = ctk.CTkFrame(left, fg_color="transparent")
         bar.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 4))
-        ctk.CTkButton(bar, text="📂 Görsel Seç", command=self._pick_file
-                      ).pack(side="left")
-        ctk.CTkButton(bar, text="🧪 Örnek", width=80, fg_color="#3a3f47",
-                      hover_color="#4a505a", command=self._load_example
-                      ).pack(side="left", padx=(8, 0))
+        ctk.CTkButton(bar, text="📂 " + t("common.pick_image"),
+                      command=self._pick_file).pack(side="left")
+        ctk.CTkButton(bar, text="🧪 " + t("spray.example"), width=90,
+                      fg_color="#3a3f47", hover_color="#4a505a",
+                      command=self._load_example).pack(side="left", padx=(8, 0))
         self._view_seg = ctk.CTkSegmentedButton(
-            left, values=[VIEW_ORIGINAL, VIEW_GAME],
+            left, values=[self._view_original, self._view_game],
             command=self._on_view_change)
-        self._view_seg.set(VIEW_ORIGINAL)
+        self._view_seg.set(self._view_original)
         self._view_seg.grid(row=1, column=0, padx=12, pady=(4, 6))
-        self._preview = ctk.CTkLabel(left, text="Önizleme yok",
+        self._preview = ctk.CTkLabel(left, text=t("spray.no_preview"),
                                      width=PREVIEW_SIZE, height=PREVIEW_SIZE)
         self._preview.grid(row=2, column=0, padx=12, pady=(0, 8))
         self._info = ctk.CTkLabel(left, text="", text_color="#9aa4b0",
@@ -72,13 +73,14 @@ class SprayTab(ctk.CTkFrame):
         right.grid(row=1, column=1, sticky="nsew", padx=(8, 16), pady=8)
         right.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(right, text="Sprey adı:").grid(
+        ctk.CTkLabel(right, text=t("spray.name_label")).grid(
             row=0, column=0, padx=12, pady=(16, 6), sticky="w")
-        self._name_entry = ctk.CTkEntry(right, placeholder_text="dosya adı")
+        self._name_entry = ctk.CTkEntry(
+            right, placeholder_text=t("spray.name_placeholder"))
         self._name_entry.grid(row=0, column=1, padx=(0, 12), pady=(16, 6),
                               sticky="ew")
 
-        ctk.CTkLabel(right, text="Maks. çözünürlük:").grid(
+        ctk.CTkLabel(right, text=t("spray.max_res")).grid(
             row=1, column=0, padx=12, pady=6, sticky="w")
         self._size_menu = ctk.CTkOptionMenu(
             right, values=["512", "256", "128"], width=110,
@@ -86,28 +88,22 @@ class SprayTab(ctk.CTkFrame):
         self._size_menu.grid(row=1, column=1, padx=(0, 12), pady=6, sticky="w")
 
         self._generate_btn = ctk.CTkButton(
-            right, text="⚙️  Sprey Oluştur", height=40,
-            font=ctk.CTkFont(size=14, weight="bold"),
-            command=self._generate)
+            right, text="⚙️  " + t("spray.generate"), height=40,
+            font=ctk.CTkFont(size=14, weight="bold"), command=self._generate)
         self._generate_btn.grid(row=2, column=0, columnspan=2,
                                 padx=12, pady=(18, 6), sticky="ew")
         self._status = ctk.CTkLabel(right, text="", wraplength=380,
                                     justify="left")
         self._status.grid(row=3, column=0, columnspan=2, padx=12, pady=6,
                           sticky="w")
-        hint = ctk.CTkLabel(
-            right, text="İpucu: \"Oyun İçi (VTF)\" görünümü spreyi gerçek DXT\n"
-                        "sıkıştırmasından geçirip duvar üzerinde gösterir.\n\n"
-                        "Spreyin oyunda görünmesi için çıktıyı\n"
-                        "tf\\materials\\vgui\\logos klasörüne kaydedin ve\n"
-                        "oyun ayarlarından spreyi seçin.",
-            text_color="#7a828d", justify="left")
+        hint = ctk.CTkLabel(right, text=t("spray.hint"), text_color="#7a828d",
+                            justify="left")
         hint.grid(row=4, column=0, columnspan=2, padx=12, pady=(8, 12),
                   sticky="w")
 
         # --- bottom: export path ---
         self._path_sel = PathSelector(
-            self, config, "spray_export_path", "Kayıt Dizini:")
+            self, config, "spray_export_path", t("common.export_dir"))
         self._path_sel.grid(row=2, column=0, columnspan=2, sticky="ew",
                             padx=16, pady=(4, 16))
 
@@ -115,9 +111,9 @@ class SprayTab(ctk.CTkFrame):
 
     def _pick_file(self):
         path = filedialog.askopenfilename(
-            title="Görsel seç",
-            filetypes=[("Görseller", "*.png *.jpg *.jpeg *.gif"),
-                       ("Tümü", "*.*")])
+            title=t("common.pick_image_dialog"),
+            filetypes=[(t("common.images_filter"), "*.png *.jpg *.jpeg *.gif"),
+                       (t("common.all_files"), "*.*")])
         if path:
             self._load_image(path)
 
@@ -125,7 +121,7 @@ class SprayTab(ctk.CTkFrame):
         """Load the bundled sample image so the tool can be tried instantly."""
         path = resource_path(*SAMPLE_IMAGE)
         if not os.path.isfile(path):
-            self._set_status("❌ Örnek görsel bulunamadı.", error=True)
+            self._set_status("❌ " + t("spray.example_not_found"), error=True)
             return
         self._load_image(path)
 
@@ -133,7 +129,8 @@ class SprayTab(ctk.CTkFrame):
         try:
             frames = spray.load_frames(path)
         except Exception as exc:
-            self._set_status(f"❌ Görsel açılamadı: {exc}", error=True)
+            self._set_status("❌ " + t("common.image_open_error", exc=exc),
+                             error=True)
             return
         self._image_path = path
         self._frames = frames
@@ -143,11 +140,11 @@ class SprayTab(ctk.CTkFrame):
             0, spray.sanitize_spray_name(os.path.splitext(
                 os.path.basename(path))[0]))
         w, h = frames[0].size
-        kind = f"{len(frames)} kare (animasyonlu GIF)" if len(frames) > 1 \
-            else "statik görsel"
+        kind = (t("spray.kind_animated", n=len(frames)) if len(frames) > 1
+                else t("spray.kind_static"))
         self._base_info = f"{w}x{h} — {kind}"
         self._set_status("")
-        self._view_seg.set(VIEW_ORIGINAL)
+        self._view_seg.set(self._view_original)
         self._show_original()
 
     # -- preview handling ----------------------------------------------
@@ -182,15 +179,15 @@ class SprayTab(ctk.CTkFrame):
 
     def _on_view_change(self, value):
         if not self._frames:
-            self._view_seg.set(VIEW_ORIGINAL)
+            self._view_seg.set(self._view_original)
             return
-        if value == VIEW_ORIGINAL:
+        if value == self._view_original:
             self._show_original()
         else:
             self._show_game_preview()
 
     def _on_size_change(self, _value):
-        if self._frames and self._view_seg.get() == VIEW_GAME:
+        if self._frames and self._view_seg.get() == self._view_game:
             self._show_game_preview()
 
     def _show_game_preview(self):
@@ -201,7 +198,7 @@ class SprayTab(ctk.CTkFrame):
             self._info.configure(text=f"{self._base_info}\n{cached[1]}")
             return
         self._info.configure(
-            text=f"{self._base_info}\n⏳ VTF önizlemesi hesaplanıyor...")
+            text=f"{self._base_info}\n⏳ " + t("spray.computing_preview"))
         frames, max_dim = self._frames, key[1]
 
         def work():
@@ -211,7 +208,7 @@ class SprayTab(ctk.CTkFrame):
                             for img in decoded]
             except Exception as exc:
                 ui_call(lambda exc=exc: self._set_status(
-                    f"❌ Önizleme hatası: {exc}", error=True))
+                    "❌ " + t("common.preview_error", exc=exc), error=True))
             else:
                 ui_call(lambda: self._game_preview_ready(key, composed, info))
 
@@ -220,14 +217,13 @@ class SprayTab(ctk.CTkFrame):
     def _game_preview_ready(self, key, composed, info):
         ctk_frames = [ctk.CTkImage(light_image=img, dark_image=img,
                                    size=img.size) for img in composed]
-        frame_note = f" · {info['frames']} kare" if info["frames"] > 1 else ""
-        line = (f"Oyun içi: {info['width']}x{info['height']} "
-                f"{info['format']}{frame_note} · "
-                f"~{info['est_size'] / 1024:.0f} KB")
+        note = t("spray.frame_note", n=info["frames"]) if info["frames"] > 1 else ""
+        line = t("spray.game_info", w=info["width"], h=info["height"],
+                 fmt=info["format"], note=note,
+                 kb=f"{info['est_size'] / 1024:.0f}")
         self._game_cache[key] = (ctk_frames, line)
-        # Only apply if the user is still on this file + view + size.
         current = (self._image_path, int(self._size_menu.get()))
-        if current == key and self._view_seg.get() == VIEW_GAME:
+        if current == key and self._view_seg.get() == self._view_game:
             self._show_frames(ctk_frames)
             self._info.configure(text=f"{self._base_info}\n{line}")
 
@@ -235,16 +231,17 @@ class SprayTab(ctk.CTkFrame):
 
     def _generate(self):
         if not self._image_path:
-            self._set_status("❌ Önce bir görsel seçin.", error=True)
+            self._set_status("❌ " + t("common.select_image_first"), error=True)
             return
         export_dir = self._path_sel.get()
         if not export_dir:
-            self._set_status("❌ Kayıt dizini seçin.", error=True)
+            self._set_status("❌ " + t("common.select_export"), error=True)
             return
         name = self._name_entry.get().strip()
         max_dim = int(self._size_menu.get())
-        self._generate_btn.configure(state="disabled", text="Oluşturuluyor...")
-        self._set_status("⏳ VTF kodlanıyor, lütfen bekleyin...")
+        self._generate_btn.configure(state="disabled",
+                                     text=t("spray.generating_btn"))
+        self._set_status("⏳ " + t("spray.encoding"))
 
         def work():
             try:
@@ -258,15 +255,16 @@ class SprayTab(ctk.CTkFrame):
         threading.Thread(target=work, daemon=True).start()
 
     def _done(self, info=None, error=None):
-        self._generate_btn.configure(state="normal", text="⚙️  Sprey Oluştur")
+        self._generate_btn.configure(state="normal",
+                                     text="⚙️  " + t("spray.generate"))
         if error:
             self._set_status(f"❌ {error}", error=True)
             return
-        frame_note = (f", {info['frames']} kare" if info["frames"] > 1 else "")
-        self._set_status(
-            f"✅ Tamamlandı: {info['name']}.vtf + .vmt\n"
-            f"{info['width']}x{info['height']} {info['format']}{frame_note} — "
-            f"{info['file_size'] / 1024:.0f} KB\n{info['vtf_path']}")
+        note = t("spray.done_note", n=info["frames"]) if info["frames"] > 1 else ""
+        self._set_status("✅ " + t(
+            "spray.done", name=info["name"], w=info["width"], h=info["height"],
+            fmt=info["format"], note=note,
+            kb=f"{info['file_size'] / 1024:.0f}", path=info["vtf_path"]))
 
     def _set_status(self, text, error=False):
         self._status.configure(

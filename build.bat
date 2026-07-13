@@ -8,7 +8,7 @@ if errorlevel 1 goto :error
 
 echo [2/2] EXE derleniyor...
 pyinstaller --noconfirm --clean --onefile --windowed ^
-  --name "TF2 Swiss Army Knife" --icon "assets\icon.ico" ^
+  --name "Teufort Toolkit" --icon "assets\icon.ico" ^
   --add-data "assets\icon.ico;assets" ^
   --add-data "assets\samples;assets\samples" ^
   --collect-all customtkinter --collect-all soundfile --collect-all sounddevice ^
@@ -16,7 +16,7 @@ pyinstaller --noconfirm --clean --onefile --windowed ^
 if errorlevel 1 goto :error
 
 echo.
-echo Tamamlandi: dist\TF2 Swiss Army Knife.exe
+echo Tamamlandi: dist\Teufort Toolkit.exe
 goto :eof
 
 :error

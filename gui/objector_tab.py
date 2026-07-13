@@ -8,6 +8,7 @@ import customtkinter as ctk
 from PIL import Image
 
 from core import objector, preview
+from i18n import t
 from .widgets import CropCanvas, PathSelector
 
 SIGN_SIZE = (190, 220)
@@ -25,26 +26,30 @@ class ObjectorTab(ctk.CTkFrame):
         self.grid_rowconfigure(2, weight=1)
 
         ctk.CTkLabel(
-            self, text="Conscientious Objector için tam renkli paper_overlay.png "
-                       "üretir. Dosya, custom klasörünün içine doğru yola "
-                       "(scripts\\items\\custom_texture_blend_layers) yazılır. "
-                       "Kare alanı sürükleyerek taşıyın, sağ alt köşeden "
-                       "boyutlandırın — önizleme anında güncellenir.",
-            anchor="w", text_color="#9aa4b0", wraplength=820, justify="left").grid(
+            self, text=t("objector.header"), anchor="w",
+            text_color="#9aa4b0", wraplength=840, justify="left").grid(
             row=0, column=0, sticky="ew", padx=16, pady=(12, 4))
 
         bar = ctk.CTkFrame(self, fg_color="transparent")
         bar.grid(row=1, column=0, sticky="ew", padx=16, pady=4)
-        ctk.CTkButton(bar, text="📂 Görsel Seç", command=self._pick_file
-                      ).pack(side="left")
-        ctk.CTkButton(bar, text="↺ Kırpmayı Sıfırla", width=140,
+        ctk.CTkButton(bar, text="📂 " + t("common.pick_image"),
+                      command=self._pick_file).pack(side="left")
+        ctk.CTkButton(bar, text="↺ " + t("objector.reset_crop"), width=150,
                       fg_color="#3a3f47", hover_color="#4a505a",
                       command=self._reset_crop).pack(side="left", padx=8)
-        ctk.CTkLabel(bar, text="Çözünürlük:").pack(side="left", padx=(12, 4))
+        ctk.CTkLabel(bar, text=t("objector.resolution")).pack(
+            side="left", padx=(12, 4))
+        # Map each (translated) menu label back to its pixel size, so parsing
+        # never depends on the label's punctuation/spacing across languages.
+        self._size_by_label = {
+            t("objector.size_256"): 256,
+            t("objector.size_128"): 128,
+            t("objector.size_512"): 512,
+        }
+        labels = list(self._size_by_label.keys())
         self._size_menu = ctk.CTkOptionMenu(
-            bar, width=150, command=self._on_size_change,
-            values=["256 (önerilen)", "128 (en uyumlu)", "512 (en keskin)"])
-        self._size_menu.set("256 (önerilen)")
+            bar, width=170, command=self._on_size_change, values=labels)
+        self._size_menu.set(labels[0])
         self._size_menu.pack(side="left")
         self._info = ctk.CTkLabel(bar, text="", text_color="#9aa4b0")
         self._info.pack(side="left", padx=12)
@@ -59,26 +64,25 @@ class ObjectorTab(ctk.CTkFrame):
 
         side = ctk.CTkFrame(center, fg_color="transparent")
         side.grid(row=0, column=1, padx=(6, 12), pady=8, sticky="n")
-        self._out_caption = ctk.CTkLabel(side, text="Çıktı (256x256)",
-                                         text_color="#9aa4b0")
+        self._out_caption = ctk.CTkLabel(
+            side, text=t("objector.output", size=256), text_color="#9aa4b0")
         self._out_caption.pack(pady=(4, 2))
         self._out_preview = ctk.CTkLabel(side, text="—", width=132, height=132)
         self._out_preview.pack()
-        ctk.CTkLabel(side, text="Oyun içi görünüm",
+        ctk.CTkLabel(side, text=t("objector.ingame_view"),
                      text_color="#9aa4b0").pack(pady=(10, 2))
         self._sign_preview = ctk.CTkLabel(side, text="—", width=SIGN_SIZE[0],
                                           height=SIGN_SIZE[1])
         self._sign_preview.pack()
 
         self._path_sel = PathSelector(
-            self, config, "objector_export_path",
-            "Kayıt Dizini (custom klasörü):")
+            self, config, "objector_export_path", t("common.export_dir_custom"))
         self._path_sel.grid(row=3, column=0, sticky="ew", padx=16, pady=4)
 
         bottom = ctk.CTkFrame(self, fg_color="transparent")
         bottom.grid(row=4, column=0, sticky="ew", padx=16, pady=(4, 16))
         self._export_btn = ctk.CTkButton(
-            bottom, text="🖼️  paper_overlay.png Olarak Kaydet", height=40,
+            bottom, text="🖼️  " + t("objector.save_btn"), height=40,
             font=ctk.CTkFont(size=14, weight="bold"), command=self._export)
         self._export_btn.pack(side="left")
         self._status = ctk.CTkLabel(bottom, text="", wraplength=520,
@@ -89,16 +93,18 @@ class ObjectorTab(ctk.CTkFrame):
 
     def _pick_file(self):
         path = filedialog.askopenfilename(
-            title="Görsel seç",
-            filetypes=[("Görseller", "*.png *.jpg *.jpeg *.bmp *.webp *.gif"),
-                       ("Tümü", "*.*")])
+            title=t("common.pick_image_dialog"),
+            filetypes=[(t("common.images_filter"),
+                        "*.png *.jpg *.jpeg *.bmp *.webp *.gif"),
+                       (t("common.all_files"), "*.*")])
         if not path:
             return
         try:
             img = Image.open(path)
             img.load()
         except Exception as exc:
-            self._set_status(f"❌ Görsel açılamadı: {exc}", error=True)
+            self._set_status("❌ " + t("common.image_open_error", exc=exc),
+                             error=True)
             return
         self._image_path = path
         self._src_img = img.convert("RGBA")
@@ -111,11 +117,11 @@ class ObjectorTab(ctk.CTkFrame):
             self._canvas.set_image(self._src_img)
 
     def _selected_size(self) -> int:
-        return int(self._size_menu.get().split()[0])
+        return self._size_by_label.get(self._size_menu.get(), 256)
 
     def _on_size_change(self, _value):
         self._out_caption.configure(
-            text=f"Çıktı ({self._selected_size()}px)")
+            text=t("objector.output", size=self._selected_size()))
         self._schedule_preview()
 
     # -- live preview ----------------------------------------------------
@@ -145,12 +151,12 @@ class ObjectorTab(ctk.CTkFrame):
 
     def _export(self):
         if not self._image_path:
-            self._set_status("❌ Önce bir görsel seçin.", error=True)
+            self._set_status("❌ " + t("common.select_image_first"), error=True)
             return
         export_dir = self._path_sel.get()
         if not export_dir:
-            self._set_status("❌ Kayıt dizini seçin "
-                             "(örn: ...\\tf\\custom\\ModKlasorum).", error=True)
+            self._set_status("❌ " + t("common.select_export_custom"),
+                             error=True)
             return
         size = self._selected_size()
         try:
@@ -161,10 +167,10 @@ class ObjectorTab(ctk.CTkFrame):
             self._set_status(f"❌ {exc}", error=True)
             return
         w, h = result["size"]
-        note = ("\nOyunda görünmezse Çözünürlük'ü 128'e alıp tekrar deneyin."
-                if size != objector.COMPATIBLE_SIZE else "")
-        self._set_status(
-            f"✅ Kaydedildi ({w}x{h}):\n{result['output_path']}{note}")
+        note = (t("objector.res_note") if size != objector.COMPATIBLE_SIZE
+                else "")
+        self._set_status("✅ " + t("objector.saved", w=w, h=h,
+                                   path=result["output_path"], note=note))
 
     def _set_status(self, text, error=False):
         self._status.configure(

@@ -42,9 +42,14 @@ def main():
     ImageDraw.Draw(im).ellipse([60, 30, 340, 230], fill=(240, 80, 40))
     im.save(photo)
 
+    # pin the UI language so assertions are deterministic across machines
+    from config import ConfigManager
+    ConfigManager().set("language", "tr")
+
     app = App()
     pump(app, 1.5)  # let TF2 detection finish
     print("TF2 durumu:", app._tf2_label.cget("text")[:80])
+    print("dil:", __import__("i18n").get_language())
 
     # --- Tab 1: spray ---
     t = app.spray_tab
@@ -80,9 +85,8 @@ def main():
     # --- Tab 1b: game-accurate preview (DXT round-trip on a wall) ---
     t._frames = [Image.open(photo).convert("RGBA")]
     t._base_info = "test"
-    from gui.spray_tab import VIEW_GAME
-    t._view_seg.set(VIEW_GAME)
-    t._on_view_change(VIEW_GAME)
+    t._view_seg.set(t._view_game)
+    t._on_view_change(t._view_game)
     for _ in range(200):
         pump(app, 0.05)
         if "Oyun içi" in t._info.cget("text"):

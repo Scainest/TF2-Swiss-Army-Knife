@@ -9,7 +9,12 @@ from tkinter import filedialog
 import customtkinter as ctk
 
 from core import audio
+from i18n import t
 from .widgets import PathSelector, WaveformCanvas, ui_call
+
+
+def _chan_label(n: int) -> str:
+    return {1: "mono", 2: "stereo"}.get(n, t("sound.channels", n=n))
 
 
 class SoundTab(ctk.CTkFrame):
@@ -23,16 +28,14 @@ class SoundTab(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            self, text="Ses dosyasını (.mp3/.wav/.ogg) kırpar ve TF2 "
-                       "standardında (44100 Hz, 16-bit PCM) hitsound/killsound "
-                       "olarak kaydeder. Turuncu tutamaçları sürükleyin.",
-            anchor="w", text_color="#9aa4b0").grid(
+            self, text=t("sound.header"), anchor="w", text_color="#9aa4b0",
+            wraplength=880, justify="left").grid(
             row=0, column=0, sticky="ew", padx=16, pady=(12, 4))
 
         bar = ctk.CTkFrame(self, fg_color="transparent")
         bar.grid(row=1, column=0, sticky="ew", padx=16, pady=4)
-        ctk.CTkButton(bar, text="📂 Ses Dosyası Seç", command=self._pick_file
-                      ).pack(side="left")
+        ctk.CTkButton(bar, text="📂 " + t("sound.pick_file"),
+                      command=self._pick_file).pack(side="left")
         self._info = ctk.CTkLabel(bar, text="", text_color="#9aa4b0")
         self._info.pack(side="left", padx=12)
 
@@ -47,13 +50,13 @@ class SoundTab(ctk.CTkFrame):
         # --- trim controls ---
         controls = ctk.CTkFrame(self, fg_color="transparent")
         controls.grid(row=3, column=0, sticky="ew", padx=16, pady=4)
-        ctk.CTkLabel(controls, text="Başlangıç (sn):").pack(side="left")
+        ctk.CTkLabel(controls, text=t("sound.start")).pack(side="left")
         self._start_var = ctk.StringVar(value="0.00")
         self._end_var = ctk.StringVar(value="0.00")
         start_entry = ctk.CTkEntry(controls, textvariable=self._start_var,
                                    width=80)
         start_entry.pack(side="left", padx=(6, 16))
-        ctk.CTkLabel(controls, text="Bitiş (sn):").pack(side="left")
+        ctk.CTkLabel(controls, text=t("sound.end")).pack(side="left")
         end_entry = ctk.CTkEntry(controls, textvariable=self._end_var,
                                  width=80)
         end_entry.pack(side="left", padx=(6, 16))
@@ -64,26 +67,25 @@ class SoundTab(ctk.CTkFrame):
                                        text_color="#9aa4b0")
         self._sel_label.pack(side="left", padx=8)
 
-        ctk.CTkButton(controls, text="⏹ Durdur", width=90,
+        ctk.CTkButton(controls, text="⏹ " + t("sound.stop"), width=100,
                       fg_color="#3a3f47", hover_color="#4a505a",
                       command=self._stop_preview).pack(side="right", padx=4)
-        ctk.CTkButton(controls, text="▶ Önizle", width=90,
+        ctk.CTkButton(controls, text="▶ " + t("sound.preview_btn"), width=100,
                       command=self._preview).pack(side="right", padx=4)
 
         self._path_sel = PathSelector(
-            self, config, "sound_export_path",
-            "Kayıt Dizini (custom klasörü):")
+            self, config, "sound_export_path", t("common.export_dir_custom"))
         self._path_sel.grid(row=4, column=0, sticky="ew", padx=16, pady=8)
 
         bottom = ctk.CTkFrame(self, fg_color="transparent")
         bottom.grid(row=5, column=0, sticky="ew", padx=16, pady=(4, 16))
         self._hit_btn = ctk.CTkButton(
-            bottom, text="🎯 Hitsound Olarak Aktar", height=40,
+            bottom, text="🎯 " + t("sound.export_hit"), height=40,
             font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self._export("hitsound"))
         self._hit_btn.pack(side="left")
         self._kill_btn = ctk.CTkButton(
-            bottom, text="💀 Killsound Olarak Aktar", height=40,
+            bottom, text="💀 " + t("sound.export_kill"), height=40,
             font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#8c3b3b", hover_color="#a34848",
             command=lambda: self._export("killsound"))
@@ -96,12 +98,12 @@ class SoundTab(ctk.CTkFrame):
 
     def _pick_file(self):
         path = filedialog.askopenfilename(
-            title="Ses dosyası seç",
-            filetypes=[("Ses dosyaları", "*.mp3 *.wav *.ogg *.flac"),
-                       ("Tümü", "*.*")])
+            title=t("sound.pick_dialog"),
+            filetypes=[(t("common.audio_filter"), "*.mp3 *.wav *.ogg *.flac"),
+                       (t("common.all_files"), "*.*")])
         if not path:
             return
-        self._info.configure(text="⏳ Yükleniyor...")
+        self._info.configure(text="⏳ " + t("sound.loading"))
 
         def work():
             try:
@@ -125,11 +127,10 @@ class SoundTab(ctk.CTkFrame):
         self._wave.set_audio(env, self._duration)
         self._start_var.set("0.00")
         self._end_var.set(f"{self._duration:.2f}")
-        ch = {1: "mono", 2: "stereo"}.get(data.shape[1],
-                                          f"{data.shape[1]} kanal")
-        self._info.configure(
-            text=f"{os.path.basename(path)} — {self._duration:.2f} sn, "
-                 f"{rate} Hz, {ch}")
+        self._info.configure(text=t(
+            "sound.file_info", name=os.path.basename(path),
+            dur=f"{self._duration:.2f}", rate=rate,
+            ch=_chan_label(data.shape[1])))
         self._update_sel_label()
         self._set_status("")
 
@@ -154,7 +155,7 @@ class SoundTab(ctk.CTkFrame):
 
     def _update_sel_label(self):
         start, end = self._wave.get_selection()
-        self._sel_label.configure(text=f"Seçim: {end - start:.2f} sn")
+        self._sel_label.configure(text=t("sound.selection", x=f"{end - start:.2f}"))
 
     def _selection(self):
         start, end = self._wave.get_selection()
@@ -162,7 +163,7 @@ class SoundTab(ctk.CTkFrame):
 
     def _preview(self):
         if self._data is None:
-            self._set_status("❌ Önce bir ses dosyası yükleyin.", error=True)
+            self._set_status("❌ " + t("sound.load_first"), error=True)
             return
         try:
             import sounddevice as sd
@@ -172,7 +173,8 @@ class SoundTab(ctk.CTkFrame):
             sd.stop()
             sd.play(segment, audio.TARGET_SAMPLE_RATE)
         except Exception as exc:
-            self._set_status(f"❌ Önizleme hatası: {exc}", error=True)
+            self._set_status("❌ " + t("common.preview_error", exc=exc),
+                             error=True)
 
     def _stop_preview(self):
         try:
@@ -183,17 +185,17 @@ class SoundTab(ctk.CTkFrame):
 
     def _export(self, kind: str):
         if self._data is None:
-            self._set_status("❌ Önce bir ses dosyası yükleyin.", error=True)
+            self._set_status("❌ " + t("sound.load_first"), error=True)
             return
         export_dir = self._path_sel.get()
         if not export_dir:
-            self._set_status("❌ Kayıt dizini seçin "
-                             "(örn: ...\\tf\\custom\\ModKlasorum).", error=True)
+            self._set_status("❌ " + t("common.select_export_custom"),
+                             error=True)
             return
         start, end = self._selection()
         for btn in (self._hit_btn, self._kill_btn):
             btn.configure(state="disabled")
-        self._set_status("⏳ Dışa aktarılıyor...")
+        self._set_status("⏳ " + t("sound.exporting"))
 
         def work():
             try:
@@ -212,10 +214,9 @@ class SoundTab(ctk.CTkFrame):
         if error:
             self._set_status(f"❌ {error}", error=True)
             return
-        ch = "mono" if info["channels"] == 1 else "stereo"
-        self._set_status(
-            f"✅ Kaydedildi: {info['duration']:.2f} sn, 44100 Hz 16-bit {ch}\n"
-            f"{info['output_path']}")
+        self._set_status("✅ " + t(
+            "sound.saved", dur=f"{info['duration']:.2f}",
+            ch=_chan_label(info["channels"]), path=info["output_path"]))
 
     def _set_status(self, text, error=False):
         self._status.configure(

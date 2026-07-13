@@ -12,6 +12,8 @@ from typing import Callable, Optional, Tuple
 import customtkinter as ctk
 from PIL import Image, ImageTk
 
+from i18n import t
+
 # Worker threads must not touch tkinter directly; they enqueue callables
 # here and the main window drains the queue on its own after()-timer.
 _ui_queue: "queue.Queue[Callable[[], None]]" = queue.Queue()
@@ -54,13 +56,13 @@ class PathSelector(ctk.CTkFrame):
         self._entry.grid(row=0, column=1, sticky="ew")
         self._entry.bind("<FocusOut>", lambda e: self._commit())
         self._entry.bind("<Return>", lambda e: self._commit())
-        ctk.CTkButton(self, text="Göz At...", width=90,
+        ctk.CTkButton(self, text=t("common.browse"), width=100,
                       command=self._browse).grid(row=0, column=2, padx=(8, 0))
 
     def _browse(self):
         initial = self._var.get() or self._config.get("last_browse_dir")
         chosen = filedialog.askdirectory(
-            initialdir=initial or None, title="Kayıt dizini seç")
+            initialdir=initial or None, title=t("common.pick_dir_dialog"))
         if chosen:
             self._var.set(chosen.replace("/", "\\"))
             self._config.set("last_browse_dir", chosen)
@@ -274,7 +276,7 @@ class WaveformCanvas(tk.Canvas):
         self.delete("all")
         if self._env is None or self._duration <= 0:
             self.create_text(self._cw // 2, self._chh // 2, fill="#666",
-                             text="Ses dosyası yükleyin",
+                             text=t("sound.load_prompt"),
                              font=("Segoe UI", 12))
             return
         cy = self._chh / 2

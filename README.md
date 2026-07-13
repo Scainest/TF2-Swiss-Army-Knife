@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/icon.png" width="120" alt="TF2 Swiss Army Knife" />
+  <img src="assets/icon.png" width="120" alt="Teufort Toolkit" />
 </p>
 
-<h1 align="center">TF2 Swiss Army Knife</h1>
+<h1 align="center">Teufort Toolkit</h1>
 
 <p align="center">
   Team Fortress 2 için hepsi bir arada masaüstü yardımcı aracı —
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <i>Windows &nbsp;•&nbsp; Python + CustomTkinter &nbsp;•&nbsp; kurulum gerektirmeyen tek <code>.exe</code></i>
+  <i>Windows &nbsp;•&nbsp; Python + CustomTkinter &nbsp;•&nbsp; kurulum gerektirmeyen tek <code>.exe</code> &nbsp;•&nbsp; 9 dil</i>
 </p>
 
 <p align="center">
@@ -32,6 +32,9 @@
 - 📁 **Otomatik TF2 tespiti** — `tf` klasörünü kayıt defteri ve Steam
   kütüphanelerinden bulur; her modülün kendi kayıt yolu ayarı vardır ve kalıcı
   olarak saklanır.
+- 🌐 **9 dil** — Türkçe, English, Русский, Español, Deutsch, Français, 한국어,
+  Português, 中文. Sağ üstteki menüden dili değiştirin (uygulama seçilen dilde
+  yeniden açılır); tercih `config.json`'a kaydedilir.
 
 ---
 
@@ -123,14 +126,14 @@ Ardından `build.bat` dosyasını çalıştır **veya** şu komutu ver:
 
 ```bash
 pyinstaller --noconfirm --clean --onefile --windowed ^
-  --name "TF2 Swiss Army Knife" --icon "assets\icon.ico" ^
+  --name "Teufort Toolkit" --icon "assets\icon.ico" ^
   --add-data "assets\icon.ico;assets" ^
   --add-data "assets\samples;assets\samples" ^
   --collect-all customtkinter --collect-all soundfile --collect-all sounddevice ^
   --exclude-module scipy main.py
 ```
 
-Çıktı: `dist\TF2 Swiss Army Knife.exe` (~31 MB). Notlar:
+Çıktı: `dist\Teufort Toolkit.exe` (~31 MB). Notlar:
 - `scipy` bilerek hariç tutulur (~100 MB tasarruf); ses yeniden örnekleme
   `core/audio.py` içindeki saf-numpy pencereli-sinc filtresiyle yapılır (≈85 dB SNR).
 - Frozen (exe) modda `config.json`, `%APPDATA%\TF2SwissArmyKnife\` altında tutulur.
