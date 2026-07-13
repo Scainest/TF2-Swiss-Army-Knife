@@ -98,15 +98,84 @@ def _resample(data: np.ndarray, src_rate: int, dst_rate: int) -> np.ndarray:
         return _sinc_resample(data, src_rate, dst_rate)
 
 
+# ---------------------------------------------------------------------------
+# Audacity-style effects (all pure numpy — no scipy, so they work in the exe)
+# ---------------------------------------------------------------------------
+
+def _shelf_coeffs(fs: int, f0: float, gain_db: float, high: bool):
+    """RBJ audio-EQ-cookbook low/high shelf biquad coefficients (a0 == 1)."""
+    A = 10.0 ** (gain_db / 40.0)
+    w0 = 2.0 * math.pi * f0 / fs
+    cw, sw = math.cos(w0), math.sin(w0)
+    alpha = sw / 2.0 * math.sqrt(2.0)          # shelf slope S = 1
+    beta = 2.0 * math.sqrt(A) * alpha
+    if high:
+        b0 = A * ((A + 1) + (A - 1) * cw + beta)
+        b1 = -2 * A * ((A - 1) + (A + 1) * cw)
+        b2 = A * ((A + 1) + (A - 1) * cw - beta)
+        a0 = (A + 1) - (A - 1) * cw + beta
+        a1 = 2 * ((A - 1) - (A + 1) * cw)
+        a2 = (A + 1) - (A - 1) * cw - beta
+    else:
+        b0 = A * ((A + 1) - (A - 1) * cw + beta)
+        b1 = 2 * A * ((A - 1) - (A + 1) * cw)
+        b2 = A * ((A + 1) - (A - 1) * cw - beta)
+        a0 = (A + 1) + (A - 1) * cw + beta
+        a1 = -2 * ((A - 1) + (A + 1) * cw)
+        a2 = (A + 1) + (A - 1) * cw - beta
+    return (b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0)
+
+
+def _apply_biquad(data: np.ndarray, coeffs) -> np.ndarray:
+    """Apply a biquad (Direct Form I) down the time axis, over all channels
+    at once. Fine for short UI sounds (a few tens of thousands of samples)."""
+    b0, b1, b2, a1, a2 = coeffs
+    out = np.empty_like(data)
+    ch = data.shape[1]
+    x1 = np.zeros(ch); x2 = np.zeros(ch)
+    y1 = np.zeros(ch); y2 = np.zeros(ch)
+    for i in range(data.shape[0]):
+        x0 = data[i]
+        y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
+        out[i] = y0
+        x2, x1 = x1, x0
+        y2, y1 = y1, y0
+    return out
+
+
+def apply_effects(segment: np.ndarray, gain_db: float = 0.0,
+                  bass_db: float = 0.0, treble_db: float = 0.0,
+                  normalize: bool = False) -> np.ndarray:
+    """Bass/treble shelves + gain + optional peak normalization."""
+    if abs(bass_db) > 0.01:
+        segment = _apply_biquad(segment, _shelf_coeffs(
+            TARGET_SAMPLE_RATE, 150.0, bass_db, high=False))
+    if abs(treble_db) > 0.01:
+        segment = _apply_biquad(segment, _shelf_coeffs(
+            TARGET_SAMPLE_RATE, 4000.0, treble_db, high=True))
+    if abs(gain_db) > 0.01:
+        segment = segment * (10.0 ** (gain_db / 20.0))
+    if normalize:
+        peak = np.abs(segment).max()
+        if peak > 1e-6:
+            segment = segment * (0.98 / peak)
+    return segment
+
+
 def process_selection(
     data: np.ndarray,
     sample_rate: int,
     start_s: float,
     end_s: float,
     fade_ms: float = 3.0,
+    gain_db: float = 0.0,
+    bass_db: float = 0.0,
+    treble_db: float = 0.0,
+    normalize: bool = False,
 ) -> np.ndarray:
-    """Trim, downmix >2ch to stereo, resample to 44100 Hz and return float32
-    in [-1, 1]. A tiny fade at both edges avoids clicks at the cut points."""
+    """Trim, downmix >2ch to stereo, resample to 44100 Hz, apply the chosen
+    effects and return float32 in [-1, 1]. A tiny fade at both edges avoids
+    clicks at the cut points."""
     total = duration_seconds(data, sample_rate)
     start_s = max(0.0, min(start_s, total))
     end_s = max(start_s, min(end_s, total))
@@ -120,7 +189,8 @@ def process_selection(
         right = segment[:, 1::2].mean(axis=1)
         segment = np.stack([left, right], axis=1)
 
-    segment = _resample(segment, sample_rate, TARGET_SAMPLE_RATE)
+    segment = _resample(segment, sample_rate, TARGET_SAMPLE_RATE).astype(np.float64)
+    segment = apply_effects(segment, gain_db, bass_db, treble_db, normalize)
 
     fade = int(TARGET_SAMPLE_RATE * fade_ms / 1000.0)
     if 0 < fade < segment.shape[0] // 2:
@@ -129,7 +199,7 @@ def process_selection(
         segment[-fade:] *= ramp[::-1]
 
     peak = np.abs(segment).max()
-    if peak > 1.0:  # only prevent clipping, don't touch otherwise
+    if peak > 1.0:  # prevent clipping (e.g. from a boost) without touching quiet audio
         segment = segment / peak
     return segment.astype(np.float32)
 
@@ -141,11 +211,17 @@ def export_sound(
     end_s: float,
     export_dir: str,
     kind: str,
+    gain_db: float = 0.0,
+    bass_db: float = 0.0,
+    treble_db: float = 0.0,
+    normalize: bool = False,
 ) -> dict:
     """kind: 'hitsound' or 'killsound'. Writes 44100 Hz 16-bit PCM .wav."""
     if kind not in EXPORT_NAMES:
         raise ValueError(f"Geçersiz tür: {kind}")
-    segment = process_selection(data, sample_rate, start_s, end_s)
+    segment = process_selection(data, sample_rate, start_s, end_s,
+                                gain_db=gain_db, bass_db=bass_db,
+                                treble_db=treble_db, normalize=normalize)
 
     # Same anti-duplication logic as the objector: if the user browsed into
     # (part of) sound/ui already, don't append the chain twice.

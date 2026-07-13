@@ -17,6 +17,11 @@ def _chan_label(n: int) -> str:
     return {1: "mono", 2: "stereo"}.get(n, t("sound.channels", n=n))
 
 
+def _fmt_db(v: float) -> str:
+    v = round(v)
+    return f"{v:+d} dB" if v else "0 dB"
+
+
 class SoundTab(ctk.CTkFrame):
     def __init__(self, master, config):
         super().__init__(master, fg_color="transparent")
@@ -73,12 +78,28 @@ class SoundTab(ctk.CTkFrame):
         ctk.CTkButton(controls, text="▶ " + t("sound.preview_btn"), width=100,
                       command=self._preview).pack(side="right", padx=4)
 
+        # --- effects (Audacity-style): volume / bass / treble / normalize ---
+        fx = ctk.CTkFrame(self)
+        fx.grid(row=4, column=0, sticky="ew", padx=16, pady=(2, 6))
+        ctk.CTkLabel(fx, text="🎛 " + t("sound.effects"),
+                     font=ctk.CTkFont(weight="bold")).pack(side="left",
+                                                           padx=(12, 14), pady=8)
+        self._gain = self._fx_slider(fx, "sound.volume")
+        self._bass = self._fx_slider(fx, "sound.bass")
+        self._treble = self._fx_slider(fx, "sound.treble")
+        self._normalize = ctk.CTkCheckBox(fx, text=t("sound.normalize"),
+                                          onvalue=True, offvalue=False)
+        self._normalize.pack(side="left", padx=(10, 8))
+        ctk.CTkButton(fx, text="↺ " + t("sound.reset_fx"), width=108,
+                      fg_color="#3a3f47", hover_color="#4a505a",
+                      command=self._reset_fx).pack(side="right", padx=(4, 12))
+
         self._path_sel = PathSelector(
             self, config, "sound_export_path", t("common.export_dir_custom"))
-        self._path_sel.grid(row=4, column=0, sticky="ew", padx=16, pady=8)
+        self._path_sel.grid(row=5, column=0, sticky="ew", padx=16, pady=8)
 
         bottom = ctk.CTkFrame(self, fg_color="transparent")
-        bottom.grid(row=5, column=0, sticky="ew", padx=16, pady=(4, 16))
+        bottom.grid(row=6, column=0, sticky="ew", padx=16, pady=(4, 16))
         self._hit_btn = ctk.CTkButton(
             bottom, text="🎯 " + t("sound.export_hit"), height=40,
             font=ctk.CTkFont(size=13, weight="bold"),
@@ -95,6 +116,32 @@ class SoundTab(ctk.CTkFrame):
         self._status.pack(side="left", padx=8)
 
     # ------------------------------------------------------------------
+
+    def _fx_slider(self, parent, label_key):
+        box = ctk.CTkFrame(parent, fg_color="transparent")
+        box.pack(side="left", padx=(0, 10))
+        ctk.CTkLabel(box, text=t(label_key), width=42, anchor="w").pack(
+            side="left")
+        vallab = ctk.CTkLabel(box, text="0 dB", width=48, text_color="#9aa4b0")
+        slider = ctk.CTkSlider(
+            box, from_=-12, to=12, number_of_steps=48, width=110,
+            command=lambda v, lab=vallab: lab.configure(text=_fmt_db(v)))
+        slider.set(0)
+        slider.pack(side="left", padx=(4, 2))
+        vallab.pack(side="left")
+        slider._vallab = vallab
+        return slider
+
+    def _effects(self) -> dict:
+        return dict(gain_db=self._gain.get(), bass_db=self._bass.get(),
+                    treble_db=self._treble.get(),
+                    normalize=bool(self._normalize.get()))
+
+    def _reset_fx(self):
+        for s in (self._gain, self._bass, self._treble):
+            s.set(0)
+            s._vallab.configure(text="0 dB")
+        self._normalize.deselect()
 
     def _pick_file(self):
         path = filedialog.askopenfilename(
@@ -169,7 +216,7 @@ class SoundTab(ctk.CTkFrame):
             import sounddevice as sd
             start, end = self._selection()
             segment = audio.process_selection(self._data, self._rate,
-                                              start, end)
+                                              start, end, **self._effects())
             sd.stop()
             sd.play(segment, audio.TARGET_SAMPLE_RATE)
         except Exception as exc:
@@ -193,6 +240,7 @@ class SoundTab(ctk.CTkFrame):
                              error=True)
             return
         start, end = self._selection()
+        effects = self._effects()
         for btn in (self._hit_btn, self._kill_btn):
             btn.configure(state="disabled")
         self._set_status("⏳ " + t("sound.exporting"))
@@ -200,7 +248,7 @@ class SoundTab(ctk.CTkFrame):
         def work():
             try:
                 info = audio.export_sound(self._data, self._rate, start, end,
-                                          export_dir, kind)
+                                          export_dir, kind, **effects)
             except Exception as exc:
                 ui_call(lambda exc=exc: self._export_done(error=str(exc)))
             else:

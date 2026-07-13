@@ -587,6 +587,34 @@ _STRINGS = {
         "es": "Exportando...", "de": "Wird exportiert...", "fr": "Exportation...",
         "ko": "내보내는 중...", "pt": "Exportando...", "zh": "导出中...",
     },
+    "sound.effects": {
+        "tr": "Efektler", "en": "Effects", "ru": "Эффекты", "es": "Efectos",
+        "de": "Effekte", "fr": "Effets", "ko": "효과", "pt": "Efeitos",
+        "zh": "效果",
+    },
+    "sound.volume": {
+        "tr": "Ses", "en": "Volume", "ru": "Громкость", "es": "Volumen",
+        "de": "Lautstärke", "fr": "Volume", "ko": "볼륨", "pt": "Volume",
+        "zh": "音量",
+    },
+    "sound.bass": {
+        "tr": "Bas", "en": "Bass", "ru": "Бас", "es": "Graves", "de": "Bässe",
+        "fr": "Graves", "ko": "저음", "pt": "Graves", "zh": "低音",
+    },
+    "sound.treble": {
+        "tr": "Tiz", "en": "Treble", "ru": "Высокие", "es": "Agudos",
+        "de": "Höhen", "fr": "Aigus", "ko": "고음", "pt": "Agudos", "zh": "高音",
+    },
+    "sound.normalize": {
+        "tr": "Normalize", "en": "Normalize", "ru": "Нормализовать",
+        "es": "Normalizar", "de": "Normalisieren", "fr": "Normaliser",
+        "ko": "노멀라이즈", "pt": "Normalizar", "zh": "标准化",
+    },
+    "sound.reset_fx": {
+        "tr": "Sıfırla", "en": "Reset", "ru": "Сброс", "es": "Restablecer",
+        "de": "Zurücksetzen", "fr": "Réinit.", "ko": "초기화", "pt": "Redefinir",
+        "zh": "重置",
+    },
     "sound.channels": {
         "tr": "{n} kanal", "en": "{n} channels", "ru": "{n} канала",
         "es": "{n} canales", "de": "{n} Kanäle", "fr": "{n} canaux",

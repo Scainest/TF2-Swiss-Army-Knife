@@ -341,10 +341,43 @@ def test_sinc_resample(tmp):
     assert snr > 40, f"fallback kalitesi dusuk: {snr:.1f}dB"
 
 
+def test_audio_effects(tmp):
+    """Volume / bass / treble / normalize behave as expected."""
+    sr = 44100
+    tt = np.linspace(0, 0.5, sr // 2, endpoint=False)
+    # quiet-ish mix of a low and a high tone so shelves have something to grab
+    wave = (0.2 * np.sin(2 * np.pi * 80 * tt)
+            + 0.2 * np.sin(2 * np.pi * 6000 * tt)).astype(np.float32)[:, None]
+
+    base = audio.process_selection(wave, sr, 0.0, 0.5)
+    louder = audio.process_selection(wave, sr, 0.0, 0.5, gain_db=6.0)
+    rms = lambda a: float(np.sqrt(np.mean(a.astype(np.float64) ** 2)))
+    assert rms(louder) > rms(base) * 1.7, (rms(base), rms(louder))
+
+    norm = audio.process_selection(wave, sr, 0.0, 0.5, normalize=True)
+    assert 0.90 < float(np.abs(norm).max()) <= 1.0, np.abs(norm).max()
+
+    # bass boost raises low-band energy; treble boost raises high-band energy
+    def band_energy(sig, f_lo, f_hi):
+        spec = np.abs(np.fft.rfft(sig[:, 0]))
+        freqs = np.fft.rfftfreq(sig.shape[0], 1 / audio.TARGET_SAMPLE_RATE)
+        m = (freqs >= f_lo) & (freqs < f_hi)
+        return float((spec[m] ** 2).sum())
+
+    bass = audio.process_selection(wave, sr, 0.0, 0.5, bass_db=9.0)
+    treb = audio.process_selection(wave, sr, 0.0, 0.5, treble_db=9.0)
+    assert band_energy(bass, 40, 200) > band_energy(base, 40, 200) * 1.3
+    assert band_energy(treb, 5000, 8000) > band_energy(base, 5000, 8000) * 1.3
+    # output stays finite and within range
+    for a in (louder, norm, bass, treb):
+        assert np.isfinite(a).all() and np.abs(a).max() <= 1.0001
+    print("  ses efektleri: gain/bass/treble/normalize OK")
+
+
 def main():
     tests = [test_dxt_roundtrip, test_static_spray, test_animated_spray,
              test_size_planner, test_objector, test_audio, test_preview,
-             test_sinc_resample, test_path_dedup]
+             test_sinc_resample, test_path_dedup, test_audio_effects]
     failed = 0
     with tempfile.TemporaryDirectory() as tmp:
         for t in tests:
